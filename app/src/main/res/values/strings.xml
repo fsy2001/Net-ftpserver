@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">FTP服务端</string>
+    <string name="start_server">启动</string>
+    <string name="root_dir_label">根路径：</string>
+    <string name="root_dir_not_set">未设置</string>
+    <string name="set_root_dir">设置</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="alert_title">错误</string>
+    <string name="alert_dir_not_exist">目录不存在或无法打开</string>
+    <string name="server_running">正在运行</string>
+    <string name="alert_root_not_set">根路径未设置</string>
+    <string name="ip_unavailable">无法获取本机IP地址，请连接局域网使用</string>
+    <string name="server_info">服务器信息</string>
+    <string name="host_tag">主机：</string>
+    <string name="port_tag">端口：</string>
+    <string name="close">停止运行</string>
+</resources>
