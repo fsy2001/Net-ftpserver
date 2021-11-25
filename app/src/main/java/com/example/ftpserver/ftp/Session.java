@@ -17,7 +17,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Session {
-    private final ServerSocket dataListener;
+    private static final int dataPort = 8081;
+
+    private ServerSocket dataListener;
     private final Socket controlSocket;
     private final PrintWriter out;
     private final BufferedReader in;
@@ -32,7 +34,7 @@ public class Session {
     private String clientIp;
     private Integer clientPort = null;
 
-    public Session(Socket controlSocket, int dataPort, MainActivity mainActivity, String serverIP) throws IOException {
+    public Session(Socket controlSocket, MainActivity mainActivity, String serverIP) throws IOException {
         this.controlSocket = controlSocket;
         this.dataListener = new ServerSocket(dataPort);
         out = new PrintWriter(controlSocket.getOutputStream(), true);
@@ -196,13 +198,14 @@ public class Session {
 
     private void setPassive() {
         @SuppressLint("DefaultLocale")
-        String port = String.format("%d,%d", Control.dataPort / 256, Control.dataPort % 256);
+        String port = String.format("%d,%d", dataPort / 256, dataPort % 256);
         String ip = serverIP.replace('.', ',');
         passive = true;
         out.println(String.format("227 %s,%s", ip, port));
     }
 
     private void sendFile(String[] parts) {
+        /* 校验 */
         if (parts.length < 2) {
             out.println("503 syntax error");
             return;
@@ -224,32 +227,16 @@ public class Session {
             return;
         }
 
-
+        /* 开始传输 */
+        openDataListener();
         out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
         try {
             Socket dataConn = createDataConnection();
 
-            if (binaryMode) { // 二进制模式
-                int bufferSize = 1460; // 一个TCP payload的大小
-                byte[] buffer = new byte[bufferSize];
-                BufferedOutputStream dataOut = new BufferedOutputStream(dataConn.getOutputStream(), bufferSize);
-                BufferedInputStream fileIn = new BufferedInputStream(fileStream, bufferSize);
-                int size;
-                while ((size = fileIn.read(buffer)) != -1) {
-                    dataOut.write(buffer, 0, size);
-                }
-                dataOut.close();
-                fileIn.close();
-            } else { // 文本模式
-                PrintWriter dataOut = new PrintWriter(dataConn.getOutputStream(), true);
-                BufferedReader fileIn = new BufferedReader(new InputStreamReader(fileStream));
-                String line;
-                while ((line = fileIn.readLine()) != null) {
-                    dataOut.println(line);
-                }
-                dataOut.close();
-                fileIn.close();
-            }
+            if (binaryMode)
+                binaryDump(fileStream, dataConn.getOutputStream());
+            else
+                textDump(fileStream, dataConn.getOutputStream());
 
             dataConn.close();
             out.println("226 transfer complete");
@@ -257,9 +244,11 @@ public class Session {
             out.println("425 could not create connection");
         }
 
+        closeDataListener();
     }
 
     private void receiveFile(String[] parts) {
+        /* 校验 */
         if (parts.length < 2) {
             out.println("503 syntax error");
             return;
@@ -280,37 +269,24 @@ public class Session {
             return;
         }
 
+        /* 开始传输 */
+        openDataListener();
         out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
         try {
             Socket dataConn = createDataConnection();
 
-            if (binaryMode) { // 二进制模式
-                int bufferSize = 1460; // 一个TCP payload的大小
-                byte[] buffer = new byte[bufferSize];
-                BufferedInputStream dataIn = new BufferedInputStream(dataConn.getInputStream());
-                BufferedOutputStream fileOut = new BufferedOutputStream(fileStream);
-                int size;
-                while ((size = dataIn.read(buffer)) != -1) {
-                    fileOut.write(buffer, 0, size);
-                }
-                dataIn.close();
-                fileOut.close();
-            } else { // 文本模式
-                BufferedReader dataIn = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
-                PrintWriter fileOut = new PrintWriter(fileStream);
-                String line;
-                while ((line = dataIn.readLine()) != null) {
-                    fileOut.println(line);
-                }
-                dataIn.close();
-                fileOut.close();
-            }
+            if (binaryMode)
+                binaryDump(dataConn.getInputStream(), fileStream);
+            else
+                textDump(dataConn.getInputStream(), fileStream);
 
             dataConn.close();
             out.println("226 transfer complete");
         } catch (IOException e) {
             out.println("425 could not create connection");
         }
+
+        closeDataListener();
     }
 
     private Socket createDataConnection() throws IOException {
@@ -319,6 +295,48 @@ public class Session {
         } else {
             return new Socket(clientIp, clientPort);
         }
+    }
+
+    private void openDataListener() {
+        if (passive) {
+            try {
+                dataListener = new ServerSocket(dataPort);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void closeDataListener() {
+        if (passive) {
+            try {
+                dataListener.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void binaryDump(InputStream in, OutputStream out) throws IOException {
+        int bufferSize = 1460; // 一个TCP payload的大小
+        byte[] buffer = new byte[bufferSize];
+        BufferedInputStream src = new BufferedInputStream(in, bufferSize);
+        BufferedOutputStream target = new BufferedOutputStream(out, bufferSize);
+        int size;
+        while ((size = src.read(buffer)) != -1)
+            target.write(buffer, 0, size);
+        src.close();
+        target.close();
+    }
+
+    private void textDump(InputStream in, OutputStream out) throws IOException {
+        BufferedReader src = new BufferedReader(new InputStreamReader(in));
+        PrintWriter target = new PrintWriter(out);
+        String line;
+        while ((line = src.readLine()) != null)
+            target.write(line);
+        src.close();
+        target.close();
     }
 }
 

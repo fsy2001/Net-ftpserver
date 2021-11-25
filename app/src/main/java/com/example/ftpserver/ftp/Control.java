@@ -8,7 +8,6 @@ import java.net.Socket;
 
 public class Control extends Thread {
     public static final int controlPort = 8080;
-    public static final int dataPort = 8081;
     public MainActivity mainActivity;
     public String serverIP;
 
@@ -18,7 +17,7 @@ public class Control extends Thread {
         try (ServerSocket controlListener = new ServerSocket(controlPort)) {
 
             Socket clientSocket = controlListener.accept();
-            session = new Session(clientSocket, dataPort, mainActivity, serverIP);
+            session = new Session(clientSocket, mainActivity, serverIP);
             session.run();
         } catch (IOException ignored) {
 

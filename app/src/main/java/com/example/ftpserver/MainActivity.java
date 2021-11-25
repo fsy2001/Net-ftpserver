@@ -30,7 +30,6 @@ import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
     private static final int GET_ROOT_DIR = 4;
     private TextView rootDirText;
-    private TextView hostText, portText;
     private Button setRootDirButton;
     private Button startButton;
     private Button closeServerButton;
@@ -52,8 +51,10 @@ public class MainActivity extends AppCompatActivity {
         this.setRootDirButton = findViewById(R.id.set_root_dir);
         this.startButton = findViewById(R.id.start_server);
         this.closeServerButton = findViewById(R.id.close_server);
-        this.hostText = findViewById(R.id.host);
-        this.portText = findViewById(R.id.port);
+
+        /* 设置服务器信息 */
+        TextView hostText = findViewById(R.id.host);
+        TextView portText = findViewById(R.id.port);
 
         ipAddress = getLocalIpAddress();
         hostText.setText(ipAddress);
@@ -65,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
             hostText.setText("N/A");
             portText.setText("N/A");
         }
-
     }
 
     private void showAlert(Integer title, Integer message) {
@@ -175,6 +175,4 @@ public class MainActivity extends AppCompatActivity {
 
         return ipAddressString;
     }
-
-
 }
