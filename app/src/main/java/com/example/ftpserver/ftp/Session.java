@@ -19,7 +19,7 @@ import java.net.Socket;
 public class Session {
     private static final int dataPort = 8081;
 
-    private ServerSocket dataListener;
+    private final ServerSocket dataListener;
     private final Socket controlSocket;
     private final PrintWriter out;
     private final BufferedReader in;
@@ -228,9 +228,9 @@ public class Session {
         }
 
         /* 开始传输 */
-        openDataListener();
-        out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
         try {
+            out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
+
             Socket dataConn = createDataConnection();
 
             if (binaryMode)
@@ -244,7 +244,7 @@ public class Session {
             out.println("425 could not create connection");
         }
 
-        closeDataListener();
+
     }
 
     private void receiveFile(String[] parts) {
@@ -270,9 +270,8 @@ public class Session {
         }
 
         /* 开始传输 */
-        openDataListener();
-        out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
         try {
+            out.println(String.format("150 opening %s data connection", binaryMode ? "BINARY" : "ASCII"));
             Socket dataConn = createDataConnection();
 
             if (binaryMode)
@@ -285,8 +284,6 @@ public class Session {
         } catch (IOException e) {
             out.println("425 could not create connection");
         }
-
-        closeDataListener();
     }
 
     private Socket createDataConnection() throws IOException {
@@ -294,26 +291,6 @@ public class Session {
             return dataListener.accept();
         } else {
             return new Socket(clientIp, clientPort);
-        }
-    }
-
-    private void openDataListener() {
-        if (passive) {
-            try {
-                dataListener = new ServerSocket(dataPort);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void closeDataListener() {
-        if (passive) {
-            try {
-                dataListener.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 
