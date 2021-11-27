@@ -34,9 +34,9 @@ public class Session {
     private String clientIp;
     private Integer clientPort = null;
 
-    public Session(Socket controlSocket, MainActivity mainActivity, String serverIP) throws IOException {
+    public Session(Socket controlSocket, ServerSocket dataListener, MainActivity mainActivity, String serverIP) throws IOException {
         this.controlSocket = controlSocket;
-        this.dataListener = new ServerSocket(dataPort);
+        this.dataListener = dataListener;
         out = new PrintWriter(controlSocket.getOutputStream(), true);
         in = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
         clientIp = controlSocket.getInetAddress().getHostAddress();
@@ -97,8 +97,8 @@ public class Session {
                 }
             }
             controlSocket.close();
-        } catch (IOException ignored) {
-
+        } catch (IOException | NullPointerException e) {
+            e.printStackTrace();
         }
     }
 
@@ -109,24 +109,30 @@ public class Session {
             return;
         }
         String username = parts[1];
-        if (!username.equals("admin")) { // TODO: 改成真正的校验逻辑
+
+        if ((!username.equals("test")) && (!username.equals("anonymous"))) {
             out.println("530 access denied");
             return;
         }
-        out.println("331 password required");
-
-        /* 校验密码 */
-        String[] followup = in.readLine().split("\\s+");
-        if (followup.length < 2 || !followup[0].equalsIgnoreCase("PASS")) { // 短路
-            out.println("503 syntax error");
-            return;
-        }
-        String password = followup[1];
-        if (password.equals("123456")) { // TODO: 改成真正的校验逻辑
+        if (username.equals("anonymous")) {
             out.println(String.format("230 user %s logged in", username));
             authenticated = true;
         } else {
-            out.println("530 password incorrect");
+            out.println("331 password required");
+
+            /* 校验密码 */
+            String[] followup = in.readLine().split("\\s+");
+            if (followup.length < 2 || !followup[0].equalsIgnoreCase("PASS")) { // 短路
+                out.println("503 syntax error");
+                return;
+            }
+            String password = followup[1];
+            if (password.equals("test")) {
+                out.println(String.format("230 user %s logged in", username));
+                authenticated = true;
+            } else {
+                out.println("530 password incorrect");
+            }
         }
     }
 
